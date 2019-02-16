@@ -22,6 +22,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// 取代後的 body
 	body = replaceURLInResp(body, header)
 	w.Write(body)
+
+	// 用 range 把 header 中的 Set-Cookie 欄位全部複製給瀏覽器的 header
+	for _, v := range header["Set-Cookie"] {
+		// 把 domain=.github.com 移除
+		newValue := strings.Replace(v, "domain=.github.com;", "", -1)
+
+		// 把 secure 移除
+		newValue = strings.Replace(newValue, "secure;", "", 1)
+		w.Header().Add("Set-Cookie", v)
+	}
 }
 
 func cloneRequest(r *http.Request) *http.Request {
@@ -39,6 +49,11 @@ func cloneRequest(r *http.Request) *http.Request {
 	if err != nil {
 		panic(err)
 	}
+
+	// 把原請求的 cookie 複製到 req 的 cookie 裡面
+	// 這樣請求被發到 Github 時就會帶上 cookie
+	req.Header["Cookie"] = r.Header["Cookie"]
+
 	return req
 }
 
