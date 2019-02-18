@@ -14,6 +14,7 @@ const (
 	phishURL    = "http://localhost:8080"
 )
 
+// 用來 handler 所有 request
 func handler(w http.ResponseWriter, r *http.Request) {
 	req := cloneRequest(r)
 	// 取得 body & header
@@ -42,6 +43,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+// 將打到 phishing 網站的 request， 複製成要打到真正網站的 request
 func cloneRequest(r *http.Request) *http.Request {
 	// 取得原請求的 method、body
 	method := r.Method
@@ -65,6 +67,7 @@ func cloneRequest(r *http.Request) *http.Request {
 	return req
 }
 
+// 拿複製的 request 去請求真正的網站
 func sendReqToUpstream(req *http.Request) ([]byte, http.Header, int) {
 	// 回傳 http.ErrUseLastResponse 這個錯誤他就不會跟隨 redirect 而是直接得到回覆
 	checkRedirect := func(r *http.Request, via []*http.Request) error {
@@ -92,6 +95,7 @@ func sendReqToUpstream(req *http.Request) ([]byte, http.Header, int) {
 	return respBody, resp.Header, resp.StatusCode
 }
 
+// 將真正網站拿到的 response 在替換成 phishing 的資訊，給瀏覽器
 func replaceURLInResp(body []byte, header http.Header) []byte {
 	// 判斷 Content-Type 是不是 text/html
 	contentType := header.Get("Content-Type")
