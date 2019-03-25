@@ -27,6 +27,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		newValue := strings.Replace(v, "domain=.github.com;", "", -1)
 		// 把 secure 移除
 		newValue = strings.Replace(newValue, "secure;", "", 1)
+		// 幫 cookie 改名
+		// __Host-user-session -> XXHost-user-session
+		// __Secure-cookie-name -> XXSecure-cookie-name
+		newValue = strings.Replace(newValue, "__Host", "XXHost", -1)
+		newValue = strings.Replace(newValue, "__Secure", "XXSecure", -1)
 
 		w.Header().Add("Set-Cookie", newValue)
 	}
@@ -87,6 +92,13 @@ func cloneRequest(r *http.Request) *http.Request {
 	req.Header.Set("Referer", referer)
 	// 直接把 Accept-Encoding 刪掉
 	req.Header.Del("Accept-Encoding")
+
+	for i, value := range req.Header["Cookie"] {
+		// 取代 cookie 名字
+		newValue := strings.Replace(value, "XXHost", "__Host", -1)
+		newValue = strings.Replace(newValue, "XXSecure", "__Secure", -1)
+		req.Header["Cookie"][i] = newValue
+	}
 
 	return req
 }
