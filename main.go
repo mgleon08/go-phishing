@@ -31,6 +31,23 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Set-Cookie", newValue)
 	}
 
+	// Set-Cookie 之前已經有複製而且取代 secure, domain 了
+	// 所以複製除了 Set-Cookie 之外的 header
+	for k := range header {
+		if k != "Set-Cookie" {
+			value := header.Get(k)
+			w.Header().Set(k, value)
+		}
+	}
+
+	// 把安全性的 header 統統刪掉
+	w.Header().Del("Content-Security-Policy")
+	w.Header().Del("Strict-Transport-Security")
+	w.Header().Del("X-Frame-Options")
+	w.Header().Del("X-Xss-Protection")
+	w.Header().Del("X-Pjax-Version")
+	w.Header().Del("X-Pjax-Url")
+
 	// 如果 status code 是 3XX 就取代 Location 網址
 	if statusCode >= 300 && statusCode < 400 {
 		location := header.Get("Location")
