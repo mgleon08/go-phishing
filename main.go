@@ -179,6 +179,20 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	// 取得使用者輸入的帳號密碼
 	username, password, ok := r.BasicAuth()
 
+	// 判斷帳密對錯
+	if username == "username" && password == "password" && ok {
+		// 對的話就從資料庫撈資料
+		strs := db.SelectAll()
+		w.Write([]byte(strings.Join(strs, "\n\n")))
+	} else {
+		// 告訴瀏覽器這個頁面需要 Basic Auth
+		w.Header().Add("WWW-Authenticate", "Basic")
+
+		// 回傳 `401 Unauthorized`
+		w.WriteHeader(401)
+		w.Write([]byte("不給你看勒"))
+	}
+
 	// 用昨天寫好的 db.SelectAll() 撈到所有資料
 	strs := db.SelectAll()
 
