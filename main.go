@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"goPhishing/db"
 )
 
 const (
@@ -163,6 +164,7 @@ func replaceURLInResp(body []byte, header http.Header) []byte {
 }
 
 func main() {
-	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// http.HandleFunc("/", handler)
+	// log.Fatal(http.ListenAndServe(":8080", nil))
+	db.Connect()
 }
