@@ -167,4 +167,9 @@ func main() {
 	// http.HandleFunc("/", handler)
 	// log.Fatal(http.ListenAndServe(":8080", nil))
 	db.Connect()
+	db.Insert("Hello World")
+	db.Insert("Hi World")
+	for _, str := range db.SelectAll() {
+		fmt.Println(str)
+	}
 }
