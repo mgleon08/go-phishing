@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"goPhishing/db"
+	"go-phishing/db"
 )
 
 const upstreamURL = "https://github.com"
